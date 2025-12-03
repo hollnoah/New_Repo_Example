@@ -37,8 +37,8 @@
     SAVEW	    EQU	0x20
     SAVESTAT	    EQU 0x21
     STATE	    EQU 0x22
-    RECSTAT	    EQU 0x23
-    PRESSEDKEY	    EQU 0x24
+    SERVO1_VAL	    EQU 0x23
+    SERVO1_TEMP	    EQU 0x24
     TIME	    EQU 0x25
     WRITEPTR	    EQU 0x26
     TEMP1	    EQU 0x27
@@ -91,40 +91,30 @@ Start:
     MOVLW 0x28	    ;SSPCON I2C MASTER MODE
     MOVWF SSPCON
     
-;    CLRF SSPSTAT    ;CLEAR STATUS (SLEW OFF FOR 100KHZ)
     
+        
     BSF SSPCON,5    ;SSPEN = 1 (ENABLE I2C MODULE)
     
     CLRF PORTB
     
     
-    ;INTERRUPT STUFF----------------------------------------------------------------------------------------------
+    ;INTERRUPT STUFF---------------------------------------------------------------------------------------------
     
-;    BANKSEL PIR1
-;    CLRF PIR1
-    
-   
     ;END INTERRUPT STUFF-----------------------------------------------------------------------------------------
   
     GOTO MAINLOOP
  
     ;SENDING ADDRESS TO SLAVE
 
-   MAINLOOP:
+MAINLOOP:
     
    BANKSEL PORTB
    BSF PORTB,0
-   
-   ;BSF STATUS,5    ;GO TO BANK 1
-   ;BCF STATUS,6    ;GO TO BANK 1
 
    BANKSEL SSPCON2
    BSF SSPCON2,0    ;START BIT
    BTFSC SSPSTAT,3
    GOTO $-1
-   
-   ;BCF STATUS,5    ;GO TO BANK 0
-   ;BCF STATUS,6    ;GO TO BANK 0
    
    BANKSEL PIR1
    BCF PIR1,3	    ;SSPIF BIT
@@ -132,26 +122,23 @@ Start:
    GOTO $-1
    
    BANKSEL SSPBUF
-   MOVLW 0x20
-   MOVWF SSPBUF	    ;WRITES TO ADDRESS 20
+   MOVLW 0x40
+   MOVWF SSPBUF	    ;WRITES TO ADDRESS 20 (LITERAL 40 CAUSE OF BIT SHIFT)
    
-   ;BSF STATUS,5    ;GO TO BANK 1
-   ;BCF STATUS,6    ;GO TO BANK 1
+   MOVLW 2
+   CALL DELAY
    
    BANKSEL SSPSTAT
    BTFSC SSPSTAT,0  ;TESTS BF BIT TO MAKE SURE ADDRESS HAS COMPLETED WRITING
    GOTO $-1
-   
-   ;BCF STATUS,5    ;GO TO BANK 0
-   ;BCF STATUS,6    ;GO TO BANK 0
    
    BANKSEL PIR1
    BCF PIR1,3	    ;SSPIF BIT
    BTFSC PIR1,3
    GOTO $-1
    
-   ;BSF STATUS,5    ;GO TO BANK 1
-   ;BCF STATUS,6    ;GO TO BANK 1
+   ;MOVLW 2
+   ;CALL DELAY
    
    BANKSEL SSPCON2
    BSF SSPCON2,2    ;STOP BIT
@@ -159,9 +146,6 @@ Start:
    BANKSEL SSPSTAT
    BTFSC SSPSTAT,4
    GOTO $-1
-   
-   ;BCF STATUS,5    ;GO TO BANK 0
-   ;BCF STATUS,6    ;GO TO BANK 0
    
    BANKSEL PIR1
    BCF PIR1,3	    ;SSPIF BIT
@@ -173,7 +157,20 @@ Start:
    
    GOTO MAINLOOP
    
+DELAY:
+    MOVWF TEMP1
+    
+DELAYLOOP:
+    NOP
+    NOP
+    NOP
+    DECFSZ TEMP1,F
+    GOTO DELAYLOOP
+    RETURN
+    
 END
+ 
+
 
     
    
