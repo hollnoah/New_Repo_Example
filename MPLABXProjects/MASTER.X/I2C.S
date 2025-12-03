@@ -125,9 +125,6 @@ MAINLOOP:
    MOVLW 0x40
    MOVWF SSPBUF	    ;WRITES TO ADDRESS 20 (LITERAL 40 CAUSE OF BIT SHIFT)
    
-   MOVLW 2
-   CALL DELAY
-   
    BANKSEL SSPSTAT
    BTFSC SSPSTAT,0  ;TESTS BF BIT TO MAKE SURE ADDRESS HAS COMPLETED WRITING
    GOTO $-1
@@ -137,9 +134,23 @@ MAINLOOP:
    BTFSC PIR1,3
    GOTO $-1
    
-   ;MOVLW 2
-   ;CALL DELAY
-   
+   ;---------------------------------------------------------------
+   ; SEND ONE DATA BYTE: '$' (0x24)
+   BANKSEL SSPBUF
+   MOVLW 0x24         ; ASCII '$'
+   MOVWF SSPBUF       ; Send it
+
+   ; Wait until transmit is done
+   BANKSEL SSPSTAT
+   BTFSC SSPSTAT,0    ; wait until BF=0
+   GOTO $-1
+
+   BANKSEL PIR1
+   BCF PIR1,3         ; clear SSPIF
+   BTFSC PIR1,3
+   GOTO $-1
+  ;------------------------------------------------------------------
+  
    BANKSEL SSPCON2
    BSF SSPCON2,2    ;STOP BIT
    
@@ -156,17 +167,6 @@ MAINLOOP:
    BCF	PORTB,0
    
    GOTO MAINLOOP
-   
-DELAY:
-    MOVWF TEMP1
-    
-DELAYLOOP:
-    NOP
-    NOP
-    NOP
-    DECFSZ TEMP1,F
-    GOTO DELAYLOOP
-    RETURN
     
 END
  
